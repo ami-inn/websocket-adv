@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>websocket live testing</title>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #status {
+        font-weight: bold;
+      }
+      #log {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 200px;
+        overflow-y: scroll;
+      }
+
+      .status-on {
+        color: green;
+      }
+      .status-off {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WebSocket Live Testing</h1>
+    <p id="status" class="status-off">Status: Disconnected</p>
+
+    <form action="" id="message-form">
+      <input type="text" id="message-input" placeholder="Enter a message..." />
+      <button type="submit">Send</button>
+    </form>
+
+    <h3>live stream logs</h3>
+    <pre id="log"></pre>
+  </body>
+
+  <script>
+    const statusElement = document.getElementById("status");
+    const logElement = document.getElementById("log");
+    const messageForm = document.getElementById("message-form");
+    const messageInput = document.getElementById("message-input");
+
+    // initial the handshake
+    const socket = new WebSocket("ws://localhost:8080"); // Change the URL to your WebSocket server
+
+    const appendLog = (label, message) => {
+      const entry = `${new Date().toLocaleTimeString()} - ${label}: ${message}\n`;
+
+      logElement.textContent += entry;
+    };
+    socket.addEventListener("open", () => {
+      // fire only once when the connection is established
+      statusElement.textContent = "Status: Connected";
+      statusElement.classList.remove("status-off");
+      statusElement.classList.add("status-on");
+      appendLog("INFO", "WebSocket connection established.");
+    });
+
+    socket.addEventListener("close", () => {
+      // fire only once when the connection is closed
+      statusElement.textContent = "Status: Disconnected";
+      statusElement.classList.remove("status-on");
+      statusElement.classList.add("status-off");
+      appendLog("INFO", "WebSocket connection closed.");
+    });
+    socket.addEventListener("message", (event) => {
+      // fire every time a message is received
+      appendLog("RECEIVED", event.data);
+    });
+
+    document
+      .getElementById("message-form")
+      .addEventListener("submit", (event) => {
+        event.preventDefault();
+        const message = messageInput.value;
+        if (message && socket.readyState === WebSocket.OPEN) {
+          socket.send(message);
+          appendLog("SENT", message);
+          messageInput.value = "";
+        } else {
+          appendLog("ERROR", "Cannot send message. WebSocket is not open.");
+        }
+      });
+  </script>
+</html>
